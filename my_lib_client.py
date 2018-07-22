@@ -2,6 +2,11 @@ import sys
 from ipaddress import ip_address
 import json
 import socket
+import time
+
+from datetime import datetime
+
+timestamp = int(time.time())
 
 
 def check_client_sys_args():
@@ -43,16 +48,31 @@ def check_client_sys_args():
     return ip, port
 
 
+
+
+
 def client_connect(ip, port):
     sock = socket.socket()
     sock.connect((ip, port))
     result_tmp = ""
+    presence_ = {"action": "presence",
+                 "time": timestamp,
+                 "message": "Привет"}
+    # quit_ = {"action": "quit"}
+    act_presence = json.dumps(presence_)
+    # act_quit = json.dumps(quit_)
     while True:
         data = sock.recv(1024)
+
         if len(data) == 0:
             break
         result_tmp = data.decode("utf-8")
         result = json.loads(result_tmp)
+        if result['action'] == 'probe':
+            sock.send(act_presence.encode("utf-8"))
+            print(result, datetime.fromtimestamp(result['time']))
+
+        # sock.send(act_quit.encode("utf-8"))
     sock.close()
 
     return result

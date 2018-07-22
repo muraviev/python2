@@ -6,9 +6,9 @@ ip, port = my_lib_client.check_client_sys_args()
 
 
 result = my_lib_client.client_connect(ip, port)
-print(result.get('msg'))
-print(result.get('action'))
-print(result)
+# print(result.get('msg'))
+# print(result.get('action'))
+# print(result)
 
 
 # client_connect(ip=ip, port=port)
