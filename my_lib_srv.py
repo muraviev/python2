@@ -2,6 +2,10 @@ import sys
 from ipaddress import ip_address
 import json
 import socket
+import time
+from datetime import datetime
+
+
 
 
 def check_srv_sys_args():
@@ -46,15 +50,24 @@ def serv_open_sock(ip, port):
     sock = socket.socket()
     sock.bind((ip, port))
     sock.listen(1)
-
+    timestamp = int(time.time())
     data = {
         "msg": "Добро пожаловать на Наш сервер",
-        "action": "do_smth"
+        "action": "probe",
+        "time": "",
+
     }
-    s_data = json.dumps(data)
+
 
     while True:
         client, addr = sock.accept()
         print(f"Получен запрос на соединение от {addr[0]}:{addr[1]}")
+        data["time"] = int(time.time())
+        s_data = json.dumps(data)
         client.send(s_data.encode("utf-8"))
+        buf_ = client.recv(1024)
+        buf = json.loads(buf_.decode("utf-8"))
+        if len(buf) > 0:
+            print(buf, datetime.fromtimestamp(buf['time']))
+            # if buf['action'] == 'quit':
         client.close()
