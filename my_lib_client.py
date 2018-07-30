@@ -6,8 +6,6 @@ import time
 
 from datetime import datetime
 
-timestamp = int(time.time())
-
 
 def check_client_sys_args():
     port = 7777
@@ -18,8 +16,6 @@ def check_client_sys_args():
         f'-p <port> - TCP-порт на сервере (по умолчанию использует порт {port})',
         f'-a <addr> - IP-адрес сервера (например {ip})',
         '-' * 80))
-
-    # print('sys.argv = ', sys.argv)
 
     if len(sys.argv) == 1 or '-h' in sys.argv:
         print(HELP_TEXT)
@@ -48,31 +44,30 @@ def check_client_sys_args():
     return ip, port
 
 
-
-
-
 def client_connect(ip, port):
     sock = socket.socket()
     sock.connect((ip, port))
-    result_tmp = ""
-    presence_ = {"action": "presence",
-                 "time": timestamp,
-                 "message": "Привет"}
-    # quit_ = {"action": "quit"}
-    act_presence = json.dumps(presence_)
-    # act_quit = json.dumps(quit_)
-    while True:
-        data = sock.recv(1024)
+    timestamp = int(time.time())
+    data = sock.recv(1024)
+    if len(data) == 0:
+        pass
+    result_tmp = data.decode("utf-8")
+    result = json.loads(result_tmp)
+    if result['action'] == 'probe':
+        presence_ = {"action": "presence",
+                     "time": timestamp,
+                     "message": "Привет"}
+        act_presence = json.dumps(presence_)
+        sock.send(act_presence.encode("utf-8"))
+        print(result, datetime.fromtimestamp(result['time']))
+    return result, sock
 
-        if len(data) == 0:
-            break
-        result_tmp = data.decode("utf-8")
-        result = json.loads(result_tmp)
-        if result['action'] == 'probe':
-            sock.send(act_presence.encode("utf-8"))
-            print(result, datetime.fromtimestamp(result['time']))
 
-        # sock.send(act_quit.encode("utf-8"))
+def client_quit(sock):
+    timestamp = int(time.time())
+    data_ = {"action": "quit",
+            "time": timestamp,
+            "message": "quit"}
+    data = json.dumps(data_)
+    sock.send(data.encode("utf-8"))
     sock.close()
-
-    return result
