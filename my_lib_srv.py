@@ -1,8 +1,7 @@
-import sys
 from ipaddress import ip_address
 import json
 import socket
-import time
+from time import time
 from datetime import datetime
 import argparse
 
@@ -79,35 +78,64 @@ def check_srv_sys_args():
 #     print(f'Настройки соединения: {ip}:{port}')
 #     return ip, port
 
+def format_message(dict_message):
+    return json.dumps(dict_message).encode("utf-8")
 
-def serv_open_sock(ip, port):
-    sock = socket.socket()
-    sock.bind((ip, port))
-    sock.listen(5)
-    # timestamp = int(time.time())
+
+def ok_response():  # ответ сервера об успехе
     data = {
-        "msg": "Добро пожаловать на Наш сервер",
-        "action": "probe",
-        "time": "",
-
+        "response": 200,
+        "time": time()
     }
+    return data
 
-    while True:
-        client, addr = sock.accept()
-        print(f"Получен запрос на соединение от {addr[0]}:{addr[1]}")
-        data["time"] = int(time.time())
-        s_data = json.dumps(data)
-        client.send(s_data.encode("utf-8"))
+
+def error_response():  # ответ сервера об ошибке
+    data = {
+        "response": 500,
+        "time": time()
+    }
+    return data
+
+
+def quit_response():  # клиент прислал сообщение: отключение от сервера
+    return False
+
+
+def get_response_on_message(data):  # выбоор как отвечать клиенту
+    if data["action"] == "presence":
+        return ok_response()
+    elif data['action'] == 'quit':
+        return quit_response()
+    else:
+        return error_response()
+
+
+def main(ip, port):
+    with socket.socket() as sock:
+        sock.bind((ip, port))
+        sock.listen(5)
+        sock.settimeout(0.2)  # Таймаут для операций с сокетом
         while True:
             try:
-                buf_ = client.recv(1024)
-                buf = json.loads(buf_.decode("utf-8"))
-                if len(buf) > 0:
-                    print(buf, datetime.fromtimestamp(buf['time']))
-                    if buf['action'] == 'quit':
-                        client.close()
-                        break
-            except:
-                print('ERROR')
-                break
+                client, addr = sock.accept()  # Проверка подключений
+            except OSError as e:
+                pass  # timeout вышел
+            else:
+                print(f"Получен запрос на соединение от {addr[0]}:{addr[1]}")
+                while True:
+                    try:
+                        data = client.recv(1024)
+                        if not data:
+                            continue
+                        data = json.loads(data.decode("utf-8"))
+                        data["time"] = f'{datetime.fromtimestamp(data["time"])}'
+                        print(data)
 
+                        if not get_response_on_message(data):
+                            client.close()
+                            break
+                        client.send(format_message(get_response_on_message(data)))
+                    except:
+                        print('ERROR')
+                        break
