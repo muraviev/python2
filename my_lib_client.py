@@ -114,9 +114,9 @@ def main(ip, port):
                                 'Ваш выбор:'))
 
             if command == 1:
+                name = ''
+                password = ''
                 while True:
-                    name = ''
-                    password = ''
                     command = int(input('1. Ввести логин и пароль\n'
                                         '2. Войти в чат\n'
                                         '3. Выйти из чата\n'
