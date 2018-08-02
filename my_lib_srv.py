@@ -113,15 +113,40 @@ def write_responses(requests, w_clients, all_clients):
     for sock in w_clients:
         if sock in requests:
             try:
+                # print(f'requests - {requests}')
+                # print(f'sock {sock}')
+                # print(f'{requests[sock]}')
+                # print(f'w {w_clients}')
+                # print(f'a {all_clients}')
+
                 # Подготовить и отправить ответ сервера
-                resp = requests[sock]
-                # Эхо-ответ сделаем чуть непохожим на оригинал
-                print(get_response_on_message(resp))
-                sock.send(get_response_on_message(resp))
+                # resp = requests[sock]
+                resp = get_response_on_message(requests[sock])
+                if resp["response"] == 200:
+                    sock.send(json.dumps(resp).encode("utf-8"))
+                if resp["response"] == 200 and requests[sock]['action'] == 'msg':
+                    data = {
+                        "action": "msg",
+                        "user": requests[sock]["user"]["account_name"],
+                        "message": requests[sock]["message"]
+                    }
+                    msg_to_all(data, sock, w_clients)
+                # sock.send(get_response_on_message(resp))
+                # sock.send(json.dumps(get_response_on_message(resp)).encode("utf-8"))
             except:  # Сокет недоступен, клиент отключился
                 print('Клиент {} {} отключился'.format(sock.fileno(), sock.getpeername()))
                 sock.close()
                 all_clients.remove(sock)
+
+@decorators.log_server
+def msg_to_all(data, sock, w_clients):
+    for client in w_clients:
+        try:
+            if client != sock:
+                client.send(json.dumps(data).encode("utf-8"))
+        except:
+            pass
+
 
 @decorators.log_server
 def ok_response():
@@ -133,6 +158,7 @@ def ok_response():
         "time": time()
     }
     return data
+
 
 @decorators.log_server
 def error_response():
@@ -146,13 +172,15 @@ def error_response():
     print('Error 500')
     return data
 
+
 @decorators.log_server
-@decorators.format_message
 def get_response_on_message(data):
     """Выбор как отвечать клиенту
     """
     try:
         if data["action"] == "presence":
+            return ok_response()
+        elif data["action"] == "msg":
             return ok_response()
         elif data["action"] == "leave":
             return ok_response()
