@@ -15,14 +15,26 @@ def format_message(func):
     return wrapped
 
 
-def log(func):
-    ''' запись вызова функций 
+def log_server(func):
+    ''' запись вызова функций сервера
     '''
 
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
+        logger.debug(f'запуск функции {func.__name__} : {args} , {kwargs}')
         res = func(*args, **kwargs)
-        logger.debug(f'старт функции {func.__name__} c аргументами {args} {kwargs} вернула {res}')
+        logger.debug(f'функция {func.__name__} вернула {res}')
         return res
+    return wrapped
 
+def log_client(func):
+    ''' запись вызова функций  клиента
+    '''
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        logger_client.debug(f'запуск функции {func.__name__} : {args} , {kwargs}')
+        res = func(*args, **kwargs)
+        logger_client.debug(f'функция {func.__name__} вернула {res}')
+        return res
     return wrapped

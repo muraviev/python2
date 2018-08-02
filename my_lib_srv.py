@@ -8,7 +8,7 @@ import decorators
 import select
 
 
-@decorators.log
+@decorators.log_server
 def check_srv_sys_args():
     """ проверка наличия системных аргументов
     """
@@ -107,7 +107,7 @@ def read_requests(r_clients, all_clients):
 
 
 def write_responses(requests, w_clients, all_clients):
-    ''' Эхо-ответ сервера клиентам, от которых были запросы
+    ''' ответ сервера клиентам, от которых были запросы
     '''
 
     for sock in w_clients:
@@ -123,7 +123,7 @@ def write_responses(requests, w_clients, all_clients):
                 sock.close()
                 all_clients.remove(sock)
 
-
+@decorators.log_server
 def ok_response():
     """ ответ сервера 200 Ok
     """
@@ -134,7 +134,7 @@ def ok_response():
     }
     return data
 
-
+@decorators.log_server
 def error_response():
     """  ответ сервера 500 -ошибка сервера
     """
@@ -146,7 +146,7 @@ def error_response():
     print('Error 500')
     return data
 
-
+@decorators.log_server
 @decorators.format_message
 def get_response_on_message(data):
     """Выбор как отвечать клиенту
@@ -163,7 +163,8 @@ def get_response_on_message(data):
     except:
         return error_response()
 
-@decorators.log
+
+@decorators.log_server
 def main(ip, port):
     """ Основной цикл обработки запросов клиентов
     """
