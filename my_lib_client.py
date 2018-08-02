@@ -16,6 +16,8 @@ def check_client_sys_args():
         '-h - вывод данной справки',
         f'-p <port> - TCP-порт на сервере (по умолчанию использует порт {port})',
         f'-a <addr> - IP-адрес сервера (например {ip})',
+        f'-r - читаем сообщения',
+        f'-w - отправляем сообщения',
         '-' * 80))
 
     if len(sys.argv) == 1 or '-h' in sys.argv:
@@ -40,9 +42,16 @@ def check_client_sys_args():
             print(f'Ошибка порта, будет использован порт по умолчанию {port}')
             print('Порт необходимо указывать из диапозона 1-65535')
             print('-' * 80)
-    print(f'Настройки соединения: {ip}:{port}')
+    mode = "write"
+    if '-r' in sys.argv:
+        mode = "read"
+    if '-w' in sys.argv:
+        mode = "write"
+    if '-r' in sys.argv and '-w' in sys.argv:
+        mode = "read"
+    print(f'Настройки соединения: {ip}:{port}, режим работы "{mode}"')
 
-    return ip, port
+    return ip, port, mode
 
 
 @decorators.log_client
@@ -73,7 +82,7 @@ def get_message_message(user,
                         message):  # присутствие. Сервисное сообщение для извещения сервера о присутствии клиента Online
     data = {
 
-        "action": "presence",
+        "action": "msg",
         "time": time(),
         "type": "status",
         "user": user,
@@ -104,62 +113,74 @@ def get_leave_message(user):  # отключение от сервера
 
 
 @decorators.log_client
-def main(ip, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((ip, port))  # Коннект к северу
-        while True:
-            command = int(input('1. Чат \n'
-                                '2. Выйти из чата\n'
-                                '******************\n'
-                                'Ваш выбор:'))
+def main(ip, port, mode):
+    if mode == "write":
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((ip, port))  # Коннект к северу
+            while True:
+                command = int(input('1. Чат \n'
+                                    '2. Выйти из чата\n'
+                                    '******************\n'
+                                    'Ваш выбор:'))
 
-            if command == 1:
-                name = ''
-                password = ''
-                while True:
-                    command = int(input('1. Ввести логин и пароль\n'
-                                        '2. Войти в чат\n'
-                                        '3. Выйти из чата\n'
-                                        '******************\n'
-                                        'Ваш выбор:'))
-                    if command == 1:
-                        name = input("Имя пользователя: ")
-                        password = input("Пароль: ")
-                    if command == 2:
-                        if name == '' or password == '':
-                            name = 'anonymous'
-                            password = 'anonymous'
-                            print('Выполен анонимный вход')
+                if command == 1:
+                    name = ''
+                    password = ''
+                    while True:
+                        command = int(input('1. Ввести логин и пароль\n'
+                                            '2. Войти в чат\n'
+                                            '3. Выйти из чата\n'
+                                            '******************\n'
+                                            'Ваш выбор:'))
+                        if command == 1:
+                            name = input("Имя пользователя: ")
+                            password = input("Пароль: ")
+                        if command == 2:
+                            if name == '' or password == '':
+                                name = 'anonymous'
+                                password = 'anonymous'
+                                print('Выполен анонимный вход')
 
-                        print("Для выходна из чата введите сообщение: exit()")
-                        sock.send(get_presence_message(get_user(name, password)))  # отправка сообщения "присутствие"
-                        data = sock.recv(1024)
-                        if data:
-                            data = json.loads(data.decode("utf-8"))
-                            data["time"] = f'{datetime.fromtimestamp(data["time"])}'
-                            print(data)
-                        while True:
-                            message = input('*')
-                            if message == "exit()":
-                                sock.send(get_leave_message(name))
-                                data = sock.recv(1024)
-                                if data:
-                                    data = json.loads(data.decode("utf-8"))
-                                    if data["response"] == 200:
-                                        print(f'Ответ сервера: {data}')
-                                break
-                            sock.send(get_message_message(get_user(name, password),
-                                                          message))  # отправка сообщения "присутствие"
+                            print("Для выходна из чата введите сообщение: exit()")
+                            sock.send(
+                                get_presence_message(get_user(name, password)))  # отправка сообщения "присутствие"
                             data = sock.recv(1024)
                             if data:
                                 data = json.loads(data.decode("utf-8"))
-                                if data["response"] == 200:
-                                    print(f'Ответ сервера: {data}')
-                    if command == 3:
-                        break
-            elif command == 2:
-                sock.send(get_quit_message())
-                sock.close()
-                break
-            else:
-                print("Неверный ввод")
+                                data["time"] = f'{datetime.fromtimestamp(data["time"])}'
+                                print(data)
+                            while True:
+                                message = input('*')
+                                if message == "exit()":
+                                    sock.send(get_leave_message(name))
+                                    data = sock.recv(1024)
+                                    if data:
+                                        data = json.loads(data.decode("utf-8"))
+                                        if data["response"] == 200:
+                                            print(f'Ответ сервера: {data}')
+                                    break
+                                sock.send(get_message_message(get_user(name, password),
+                                                              message))  # отправка сообщения "присутствие"
+                                try:
+                                    data = sock.recv(1024)
+                                    if data:
+                                        data = json.loads(data.decode("utf-8"))
+                                        # if data["response"] == 200:
+                                        print(f'Ответ сервера: {data}')
+                                except:
+                                    pass
+                        if command == 3:
+                            break
+                elif command == 2:
+                    sock.send(get_quit_message())
+                    sock.close()
+                    break
+                else:
+                    print("Неверный ввод")
+    elif mode == "read":
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((ip, port))  # Коннект к северу
+            while True:
+                data = sock.recv(1024)
+                data = json.loads(data.decode("utf-8"))
+                print(data)
