@@ -4,9 +4,14 @@ import socket
 from time import time
 from datetime import datetime
 import argparse
+import decorators
+import select
 
 
+@decorators.log
 def check_srv_sys_args():
+    """ проверка наличия системных аргументов
+    """
     port = 7777
     ip = '0.0.0.0'
     parser = argparse.ArgumentParser()
@@ -78,11 +83,51 @@ def check_srv_sys_args():
 #     print(f'Настройки соединения: {ip}:{port}')
 #     return ip, port
 
-def format_message(dict_message):
-    return json.dumps(dict_message).encode("utf-8")
+
+def read_requests(r_clients, all_clients):
+    ''' Чтение запросов из списка клиентов
+    '''
+    responses = {}  # Словарь ответов сервера вида {сокет: запрос}
+
+    for sock in r_clients:
+        try:
+            data = sock.recv(1024)
+            data = json.loads(data.decode("utf-8"))
+            try:
+                data["time"] = f'{datetime.fromtimestamp(data["time"])}'
+            except:
+                pass
+            print(data)
+            responses[sock] = data
+        except:
+            print('Клиент {} {} отключился'.format(sock.fileno(), sock.getpeername()))
+            all_clients.remove(sock)
+
+    return responses
 
 
-def ok_response():  # ответ сервера об успехе
+def write_responses(requests, w_clients, all_clients):
+    ''' Эхо-ответ сервера клиентам, от которых были запросы
+    '''
+
+    for sock in w_clients:
+        if sock in requests:
+            try:
+                # Подготовить и отправить ответ сервера
+                resp = requests[sock]
+                # Эхо-ответ сделаем чуть непохожим на оригинал
+                print(get_response_on_message(resp))
+                sock.send(get_response_on_message(resp))
+            except:  # Сокет недоступен, клиент отключился
+                print('Клиент {} {} отключился'.format(sock.fileno(), sock.getpeername()))
+                sock.close()
+                all_clients.remove(sock)
+
+
+def ok_response():
+    """ ответ сервера 200 Ok
+    """
+
     data = {
         "response": 200,
         "time": time()
@@ -90,28 +135,40 @@ def ok_response():  # ответ сервера об успехе
     return data
 
 
-def error_response():  # ответ сервера об ошибке
+def error_response():
+    """  ответ сервера 500 -ошибка сервера
+    """
     data = {
         "response": 500,
-        "time": time()
+        "time": time(),
+        "message": "ошибка запроса"
     }
+    print('Error 500')
     return data
 
 
-def quit_response():  # клиент прислал сообщение: отключение от сервера
-    return False
-
-
-def get_response_on_message(data):  # выбоор как отвечать клиенту
-    if data["action"] == "presence":
-        return ok_response()
-    elif data['action'] == 'quit':
-        return quit_response()
-    else:
+@decorators.format_message
+def get_response_on_message(data):
+    """Выбор как отвечать клиенту
+    """
+    try:
+        if data["action"] == "presence":
+            return ok_response()
+        elif data["action"] == "leave":
+            return ok_response()
+        elif data["action"] == "quit":
+            return ok_response()
+        else:
+            return error_response()
+    except:
         return error_response()
 
-
+@decorators.log
 def main(ip, port):
+    """ Основной цикл обработки запросов клиентов
+    """
+
+    clients = []
     with socket.socket() as sock:
         sock.bind((ip, port))
         sock.listen(5)
@@ -123,19 +180,36 @@ def main(ip, port):
                 pass  # timeout вышел
             else:
                 print(f"Получен запрос на соединение от {addr[0]}:{addr[1]}")
-                while True:
-                    try:
-                        data = client.recv(1024)
-                        if not data:
-                            continue
-                        data = json.loads(data.decode("utf-8"))
-                        data["time"] = f'{datetime.fromtimestamp(data["time"])}'
-                        print(data)
+                clients.append(client)
+            finally:
+                wait = 0
+                r = []
+                w = []
+                try:
+                    r, w, e = select.select(clients, clients, [], wait)
+                except:
+                    pass  # Ничего не делать, если какой-то клиент отключился
 
-                        if not get_response_on_message(data):
-                            client.close()
-                            break
-                        client.send(format_message(get_response_on_message(data)))
-                    except:
-                        print('ERROR')
-                        break
+                requests = read_requests(r, clients)  # Сохраним запросы клиентов
+                write_responses(requests, w, clients)  # Выполним отправку ответов клиентам
+
+                #
+                #
+                #
+                # while True:
+                #     try:
+                #         data = client.recv(1024)
+                #         if not data:
+                #             continue
+                #         data = json.loads(data.decode("utf-8"))
+                #         data["time"] = f'{datetime.fromtimestamp(data["time"])}'
+                #         print(data)
+                #
+                #         if data["action"] == "quit":
+                #             client.close()
+                #             break
+                #         # client.send(format_message(get_response_on_message(data)))
+                #         client.send(get_response_on_message(data))
+                #     except:
+                #         print('ERROR')
+                #         break
