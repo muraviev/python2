@@ -46,43 +46,6 @@ def check_srv_sys_args():
     return ip, port
 
 
-# def check_srv_sys_args():
-#     port = 7777
-#     ip = '0.0.0.0'
-#     HELP_TEXT = '\r\n'.join((
-#         '-' * 80,
-#         '-h - вывод данной справки',
-#         f'-p <port> - TCP-порт для работы  (по умолчанию использует порт {port})',
-#         f'-a <addr> - IP-адрес для прослушивания (по умолчанию слушает все доступные адреса)(например {ip})',
-#         '-' * 80))
-#
-#     # print('sys.argv = ', sys.argv)
-#
-#     if len(sys.argv) == 1 or '-h' in sys.argv:
-#         print(HELP_TEXT)
-#     else:
-#         try:
-#             ip_address(sys.argv[sys.argv.index('-a') + 1])
-#             ip = sys.argv[sys.argv.index('-a') + 1]
-#         except:
-#             print('-' * 80)
-#             print(f'Ошибка IP адреса, будет использован IP по умолчанию {ip}')
-#             print('-' * 80)
-#
-#         try:
-#             port_tmp = int(sys.argv[sys.argv.index('-p') + 1])
-#             if port_tmp not in range(1, 65536):
-#                 raise Exception
-#             else:
-#                 port = port_tmp
-#         except:
-#             print('-' * 80)
-#             print(f'Ошибка порта, будет использован порт по умолчанию {port}')
-#             print('Порт необходимо указывать из диапозона 1-65535')
-#             print('-' * 80)
-#     print(f'Настройки соединения: {ip}:{port}')
-#     return ip, port
-
 
 def read_requests(r_clients, all_clients):
     ''' Чтение запросов из списка клиентов
@@ -113,14 +76,7 @@ def write_responses(requests, w_clients, all_clients):
     for sock in w_clients:
         if sock in requests:
             try:
-                # print(f'requests - {requests}')
-                # print(f'sock {sock}')
-                # print(f'{requests[sock]}')
-                # print(f'w {w_clients}')
-                # print(f'a {all_clients}')
 
-                # Подготовить и отправить ответ сервера
-                # resp = requests[sock]
                 resp = get_response_on_message(requests[sock])
                 if resp["response"] == 200:
                     sock.send(json.dumps(resp).encode("utf-8"))
@@ -131,8 +87,7 @@ def write_responses(requests, w_clients, all_clients):
                         "message": requests[sock]["message"]
                     }
                     msg_to_all(data, sock, w_clients)
-                # sock.send(get_response_on_message(resp))
-                # sock.send(json.dumps(get_response_on_message(resp)).encode("utf-8"))
+
             except:  # Сокет недоступен, клиент отключился
                 print('Клиент {} {} отключился'.format(sock.fileno(), sock.getpeername()))
                 sock.close()
@@ -222,23 +177,3 @@ def main(ip, port):
                 requests = read_requests(r, clients)  # Сохраним запросы клиентов
                 write_responses(requests, w, clients)  # Выполним отправку ответов клиентам
 
-                #
-                #
-                #
-                # while True:
-                #     try:
-                #         data = client.recv(1024)
-                #         if not data:
-                #             continue
-                #         data = json.loads(data.decode("utf-8"))
-                #         data["time"] = f'{datetime.fromtimestamp(data["time"])}'
-                #         print(data)
-                #
-                #         if data["action"] == "quit":
-                #             client.close()
-                #             break
-                #         # client.send(format_message(get_response_on_message(data)))
-                #         client.send(get_response_on_message(data))
-                #     except:
-                #         print('ERROR')
-                #         break

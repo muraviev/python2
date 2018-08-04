@@ -1,5 +1,3 @@
-# Служебный скрипт запуска/останова нескольких клиентских приложений
-
 from subprocess import Popen, CREATE_NEW_CONSOLE
 
 p_list = []
@@ -11,8 +9,7 @@ while True:
         break
     elif user == 's':    
         for _ in range(10):
-            # Флаг CREATE_NEW_CONSOLE нужен для ОС Windows,
-            # чтобы каждый процесс запускался в отдельном окне консоли
+
             p_list.append(Popen('python client.py -r',
                                  creationflags=CREATE_NEW_CONSOLE))
         print(' Запущено 10 клиентов')
