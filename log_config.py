@@ -59,8 +59,10 @@ fh_cl.setLevel(logging.DEBUG)
 fh_cl.setFormatter(formatter)
 # Добавляем в логгер новый обработчик событий и устанавливаем уровень логгирования
 logger.addHandler(fh)
-logger.addHandler(fh_cl)
 logger.setLevel(logging.DEBUG)
+
+logger_client.addHandler(fh_cl)
+logger_client.setLevel(logging.DEBUG)
 
 # Возможные уровни логгирования:
 # -----------------------------------------------------------------------------
