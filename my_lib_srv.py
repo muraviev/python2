@@ -6,9 +6,10 @@ from datetime import datetime
 import argparse
 import decorators
 import select
+from log_config import logger_srv
 
 
-@decorators.log_server
+@decorators.log(logger_srv)
 def check_srv_sys_args():
     """ проверка наличия системных аргументов
     """
@@ -46,7 +47,6 @@ def check_srv_sys_args():
     return ip, port
 
 
-
 def read_requests(r_clients, all_clients):
     ''' Чтение запросов из списка клиентов
     '''
@@ -55,7 +55,7 @@ def read_requests(r_clients, all_clients):
     for sock in r_clients:
         try:
             data = sock.recv(1024)
-            data = json.loads(data.decode("utf-8"))
+            data = decode_message(data)
             try:
                 data["time"] = f'{datetime.fromtimestamp(data["time"])}'
             except:
@@ -93,7 +93,8 @@ def write_responses(requests, w_clients, all_clients):
                 sock.close()
                 all_clients.remove(sock)
 
-@decorators.log_server
+
+@decorators.log(logger_srv)
 def msg_to_all(data, sock, w_clients):
     for client in w_clients:
         try:
@@ -103,7 +104,7 @@ def msg_to_all(data, sock, w_clients):
             pass
 
 
-@decorators.log_server
+@decorators.log(logger_srv)
 def ok_response():
     """ ответ сервера 200 Ok
     """
@@ -115,7 +116,7 @@ def ok_response():
     return data
 
 
-@decorators.log_server
+@decorators.log(logger_srv)
 def error_response():
     """  ответ сервера 500 -ошибка сервера
     """
@@ -128,18 +129,12 @@ def error_response():
     return data
 
 
-@decorators.log_server
+@decorators.log(logger_srv)
 def get_response_on_message(data):
     """Выбор как отвечать клиенту
     """
     try:
-        if data["action"] == "presence":
-            return ok_response()
-        elif data["action"] == "msg":
-            return ok_response()
-        elif data["action"] == "leave":
-            return ok_response()
-        elif data["action"] == "quit":
+        if data["action"] in ["presence", "msg", "leave", "quit"]:
             return ok_response()
         else:
             return error_response()
@@ -147,7 +142,12 @@ def get_response_on_message(data):
         return error_response()
 
 
-@decorators.log_server
+@decorators.log(logger_srv)
+def decode_message(data):
+    return json.loads(data.decode("utf-8"))
+
+
+@decorators.log(logger_srv)
 def main(ip, port):
     """ Основной цикл обработки запросов клиентов
     """
@@ -176,4 +176,3 @@ def main(ip, port):
 
                 requests = read_requests(r, clients)  # Сохраним запросы клиентов
                 write_responses(requests, w, clients)  # Выполним отправку ответов клиентам
-

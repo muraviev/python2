@@ -5,9 +5,10 @@ import socket
 from time import time
 from datetime import datetime
 import decorators
+from log_config import logger_client
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 def check_client_sys_args():
     port = 7777
     ip = '127.0.0.1'
@@ -54,7 +55,7 @@ def check_client_sys_args():
     return ip, port, mode
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 def get_user(name, password):
     data = {
         "account_name": name,
@@ -63,7 +64,7 @@ def get_user(name, password):
     return data
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 @decorators.format_message
 def get_presence_message(user):  # присутствие. Сервисное сообщение для извещения сервера о присутствии клиента Online
     data = {
@@ -76,7 +77,7 @@ def get_presence_message(user):  # присутствие. Сервисное с
     return data
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 @decorators.format_message
 def get_message_message(user,
                         message):  # присутствие. Сервисное сообщение для извещения сервера о присутствии клиента Online
@@ -91,7 +92,7 @@ def get_message_message(user,
     return data
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 @decorators.format_message
 def get_quit_message():  # отключение от сервера
     data = {
@@ -101,7 +102,7 @@ def get_quit_message():  # отключение от сервера
     return data
 
 
-@decorators.log_client
+@decorators.log(logger_client)
 @decorators.format_message
 def get_leave_message(user):  # отключение от сервера
     data = {
@@ -112,7 +113,12 @@ def get_leave_message(user):  # отключение от сервера
     return data
 
 
-@decorators.log_client
+@decorators.log(logger_client)
+def decode_message(data):
+    return json.loads(data.decode("utf-8"))
+
+
+@decorators.log(logger_client)
 def main(ip, port, mode):
     if mode == "write":
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -146,7 +152,7 @@ def main(ip, port, mode):
                                 get_presence_message(get_user(name, password)))  # отправка сообщения "присутствие"
                             data = sock.recv(1024)
                             if data:
-                                data = json.loads(data.decode("utf-8"))
+                                data = decode_message(data)
                                 data["time"] = f'{datetime.fromtimestamp(data["time"])}'
                                 print(data)
                             while True:
@@ -155,8 +161,9 @@ def main(ip, port, mode):
                                     sock.send(get_leave_message(name))
                                     data = sock.recv(1024)
                                     if data:
-                                        data = json.loads(data.decode("utf-8"))
+                                        data = decode_message(data)
                                         if data["response"] == 200:
+                                            data['time'] = f'{datetime.fromtimestamp(data["time"])}'
                                             print(f'Ответ сервера: {data}')
                                     break
                                 sock.send(get_message_message(get_user(name, password),
@@ -164,8 +171,8 @@ def main(ip, port, mode):
                                 try:
                                     data = sock.recv(1024)
                                     if data:
-                                        data = json.loads(data.decode("utf-8"))
-                                        # if data["response"] == 200:
+                                        data = decode_message(data)
+                                        data['time'] = f'{datetime.fromtimestamp(data["time"])}'
                                         print(f'Ответ сервера: {data}')
                                 except:
                                     pass
@@ -182,5 +189,5 @@ def main(ip, port, mode):
             sock.connect((ip, port))  # Коннект к северу
             while True:
                 data = sock.recv(1024)
-                data = json.loads(data.decode("utf-8"))
+                data = decode_message(data)
                 print(data)

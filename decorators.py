@@ -1,7 +1,6 @@
 import json
 import functools
 import sys
-from log_config import *
 
 
 def format_message(func):
@@ -15,28 +14,19 @@ def format_message(func):
     return wrapped
 
 
-def log_server(func):
-    ''' запись вызова функций сервера
+def log(logger):
+    ''' логгирование функций.
     '''
 
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        logger.debug(f'запуск функции {func.__name__} : {args} , {kwargs}')
-        logger.debug(f'функция {func.__name__} вызвана из {sys._getframe().f_back.f_code.co_name}')
-        res = func(*args, **kwargs)
-        logger.debug(f'функция {func.__name__} вернула {res}')
-        return res
-    return wrapped
+    def call(func):
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            logger.debug(f'запуск функции {func.__name__} : {args} , {kwargs}')
+            logger.debug(f'функция {func.__name__} вызвана из {sys._getframe().f_back.f_code.co_name}')
+            res = func(*args, **kwargs)
+            logger.debug(f'функция {func.__name__} вернула {res}')
+            return res
 
-def log_client(func):
-    ''' запись вызова функций  клиента
-    '''
+        return wrapped
 
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        logger_client.debug(f'запуск функции {func.__name__} : {args} , {kwargs}')
-        logger_client.debug(f'функция {func.__name__} вызвана из {sys._getframe().f_back.f_code.co_name}')
-        res = func(*args, **kwargs)
-        logger_client.debug(f'функция {func.__name__} вернула {res}')
-        return res
-    return wrapped
+    return call
