@@ -7,14 +7,12 @@ while True:
 
     if user == 'q':
         break
-    elif user == 's':    
+    elif user == 's':
         for _ in range(10):
-
             p_list.append(Popen('python client.py -r',
-                                 creationflags=CREATE_NEW_CONSOLE))
+                                creationflags=CREATE_NEW_CONSOLE))
         print(' Запущено 10 клиентов')
     elif user == 'x':
         for p in p_list:
             p.kill()
-        p_list.clear()    
-        
+        p_list.clear()

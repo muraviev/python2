@@ -8,6 +8,20 @@ import decorators
 from log_config import logger_client
 
 
+class Client:
+    pass
+
+
+class ChatControlle:
+    pass
+
+
+class GrafChat:
+    pass
+
+
+
+
 @decorators.log(logger_client)
 def check_client_sys_args():
     port = 7777

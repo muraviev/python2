@@ -9,6 +9,14 @@ import select
 from log_config import logger_srv
 
 
+class Server:
+    pass
+
+
+class Storage:
+    pass
+
+
 @decorators.log(logger_srv)
 def check_srv_sys_args():
     """ проверка наличия системных аргументов
