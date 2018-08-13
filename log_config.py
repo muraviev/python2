@@ -26,10 +26,11 @@ logger_srv.setLevel(logging.DEBUG)
 logger_client.addHandler(fh_cl)
 logger_client.setLevel(logging.DEBUG)
 
-# if __name__ == '__main__':
-#
-#     console = logging.StreamHandler()
-#     console.setLevel(logging.DEBUG)
-#     console.setFormatter(formatter)
-#     logger_srv.addHandler(console)
-#     logger_srv.info('Тестовый запуск логгирования')
+if __name__ == '__main__':
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    console.setFormatter(formatter)
+    logger_srv.addHandler(console)
+    logger_srv.info('Тестовый запуск логгирования')
+    logger_client.addHandler(console)
+    logger_client.info('Тестовый запуск логгирования')
